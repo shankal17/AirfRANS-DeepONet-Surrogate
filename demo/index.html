@@ -139,14 +139,25 @@
       color: var(--muted);
     }
 
-    .repo-link {
+    .masthead-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 1.5rem;
+    }
+
+    .masthead-links a {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      justify-self: start;
       font-family: var(--font-display);
       font-size: 0.9rem;
       font-weight: 600;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      html {
+        scroll-behavior: smooth;
+      }
     }
 
     /* Controls beside the figures on wide screens, above them on narrow ones */
@@ -654,6 +665,101 @@
       font-size: 0.78rem;
       color: var(--muted);
     }
+
+    /* Methodology write-up below the demo. Plain h2 / h3 / p / ul / figure markup inside it is styled here,
+       so new content needs no classes */
+    .methodology {
+      border-top: 2px solid var(--fg);
+      padding-top: 1.5rem;
+      margin-top: 1.5rem;
+      scroll-margin-top: 1rem;
+    }
+
+    .methodology> :first-child {
+      margin-top: 0;
+    }
+
+    /* A centred reading column; figures may be wider than the text. Children set only margin-block,
+       so margin-inline: auto keeps them centred. The width is in rem, not ch, so headings and
+       paragraphs in different fonts share the same left edge */
+    .methodology> * {
+      max-width: 40rem;
+      margin-inline: auto;
+    }
+
+    .methodology> :where(figure, .figure-row) {
+      max-width: 900px;
+    }
+
+    .methodology :where(h2, h3, h4) {
+      font-family: var(--font-display);
+      line-height: 1.2;
+      text-wrap: balance;
+      scroll-margin-top: 1rem;
+    }
+
+    .methodology h2 {
+      font-size: clamp(1.4rem, 1.2rem + 0.8vw, 1.8rem);
+      font-weight: 750;
+      font-stretch: 85%;
+      margin-block: 2.5rem 0.75rem;
+    }
+
+    .methodology h3 {
+      font-size: 1.15rem;
+      font-weight: 650;
+      margin-block: 2rem 0.5rem;
+    }
+
+    .methodology h4 {
+      font-size: 1rem;
+      font-weight: 650;
+      margin-block: 1.5rem 0.4rem;
+    }
+
+    .methodology :where(p, ul, ol) {
+      margin-block: 0 1rem;
+      text-wrap: pretty;
+    }
+
+    .methodology li+li {
+      margin-top: 0.3rem;
+    }
+
+    .methodology figure {
+      margin-block: 1.5rem;
+      gap: 0.5rem;
+    }
+
+    /* Images, GIFs and videos scale down to the column and keep their aspect ratio */
+    .methodology figure :where(img, video) {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      background: var(--surface);
+    }
+
+    /* Side-by-side figures that stack on narrow screens */
+    .methodology .figure-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+      gap: 1rem;
+      margin-block: 1.5rem;
+    }
+
+    .methodology .figure-row figure {
+      margin-block: 0;
+    }
+
+    .methodology figcaption {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      line-height: 1.45;
+      color: var(--muted);
+      max-width: 72ch;
+    }
   </style>
 </head>
 
@@ -666,12 +772,15 @@
         <i>C<sub>p</sub></i> and skin-friction coefficient <i>C<sub>f</sub></i> at 800 surface points, then integrates them into
         the lift and drag coefficients <i>C<sub>l</sub></i> and <i>C<sub>d</sub></i>.
       </p>
-      <a class="repo-link" href="https://github.com/shankal17/AirfRANS-DeepONet-Surrogate" target="_blank" rel="noopener">
-        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
-          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-        </svg>
-        View the code on GitHub
-      </a>
+      <nav class="masthead-links">
+        <a href="#methodology">Methodology &darr;</a>
+        <a href="https://github.com/shankal17/AirfRANS-DeepONet-Surrogate" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          View the code on GitHub
+        </a>
+      </nav>
     </header>
 
     <div class="workspace">
@@ -811,6 +920,45 @@
         </div>
       </div>
     </div>
+    
+    <article class="methodology" id="methodology">
+      <!--
+        Adding content: write plain HTML here; it's styled automatically. Put images, GIFs and videos in
+        demo/media/ (GitHub Pages only serves demo/) and reference them as media/<file>.
+
+        Section:      <h2 id="short-name">Title</h2>   (the id lets you link to it as #short-name)
+        Subsection:   <h3>Title</h3>, and <h4> below that
+        Paragraph:    <p>Text, with <i>C<sub>p</sub></i>-style symbols as in the rest of the page.</p>
+        List:         <ul><li>Item</li></ul>
+
+        Image or GIF, with caption:
+          <figure>
+            <img src="media/example.gif" alt="What the image shows" loading="lazy">
+            <figcaption>Caption text.</figcaption>
+          </figure>
+
+        Two or more figures side by side (stacked on phones):
+          <div class="figure-row">
+            <figure>...</figure>
+            <figure>...</figure>
+          </div>
+
+        Video (often much smaller than a long GIF):
+          <figure>
+            <video src="media/example.mp4" autoplay loop muted playsinline></video>
+            <figcaption>Caption text.</figcaption>
+          </figure>
+      -->
+      <h2>Methodology</h2>
+      <p>
+        Example methodology text
+      </p>
+
+      <h3>Inputs</h3>
+      <p>
+        Example Subsection
+      </p>
+    </article>
   </div>
 
   <script type="module">
