@@ -1,0 +1,1553 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DeepONet airfoil demo</title>
+  <meta name="description"
+    content="Interactive demo: the DeepONet surrogate predicts surface pressure, skin friction, lift and drag of a NACA airfoil, running entirely in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..650;1,8..60,400&display=swap">
+  <style>
+    /* Same tokens as ../report.html, so the demo reads as part of the report. */
+    :root {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --fg: #151a23;
+      --muted: #586274;
+      --rule: #d6dbe3;
+      --track: #b9c1cd;
+      --accent: #1f5fc2; /* model / prediction blue */
+      --lower: #13916a; /* lower surface, the aqua of the figure palette */
+      --warm: #c9531f; /* extrapolation orange */
+      --accent-soft: #e6eefb;
+      --warm-soft: #f8e3d8;
+      --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+      --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0e1218;
+        --surface: #161b24;
+        --fg: #e4e8ee;
+        --muted: #9aa4b4;
+        --rule: #2b3340;
+        --track: #46505f;
+        --accent: #78a8f2;
+        --lower: #4cc99a;
+        --warm: #f0915f;
+        --accent-soft: #1a2638;
+        --warm-soft: #3a2519;
+        color-scheme: dark;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #0e1218;
+      --surface: #161b24;
+      --fg: #e4e8ee;
+      --muted: #9aa4b4;
+      --rule: #2b3340;
+      --track: #46505f;
+      --accent: #78a8f2;
+      --lower: #4cc99a;
+      --warm: #f0915f;
+      --accent-soft: #1a2638;
+      --warm-soft: #3a2519;
+      color-scheme: dark;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      font-size: 1.0625rem;
+      line-height: 1.55;
+    }
+
+    a {
+      color: var(--accent);
+      text-underline-offset: 0.18em;
+      text-decoration-thickness: 1px;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    .mono,
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.86em;
+    }
+
+    code {
+      background: var(--accent-soft);
+      padding: 0.05em 0.3em;
+      border-radius: 3px;
+    }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding-block: 2rem 3rem;
+      padding-left: max(16px, env(safe-area-inset-left, 0px));
+      padding-right: max(16px, env(safe-area-inset-right, 0px));
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    /* Title block */
+    .masthead {
+      display: grid;
+      gap: 0.6rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 2px solid var(--fg);
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 750;
+      font-stretch: 85%;
+      font-size: clamp(1.8rem, 1.3rem + 1.8vw, 2.5rem);
+      line-height: 1.08;
+      margin: 0;
+      text-wrap: balance;
+    }
+
+    .lede {
+      margin: 0;
+      max-width: 70ch;
+      color: var(--muted);
+    }
+
+    /* Controls beside the figures on wide screens, above them on narrow ones */
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (min-width: 980px) {
+      .workspace {
+        grid-template-columns: 300px minmax(0, 1fr);
+      }
+
+      .controls {
+        position: sticky;
+        top: 1rem;
+      }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      padding: 1rem;
+    }
+
+    /* Control panel */
+    .controls {
+      display: grid;
+      gap: 1.1rem;
+      font-family: var(--font-display);
+      font-size: 0.92rem;
+    }
+
+    .controls fieldset {
+      border: 0;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.7rem;
+      min-width: 0;
+    }
+
+    .controls legend {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      font-weight: 650;
+      padding: 0;
+      margin-bottom: 0.5rem;
+    }
+
+    .controls fieldset+fieldset {
+      border-top: 1px solid var(--rule);
+      padding-top: 1rem;
+    }
+
+    /* The 4-digit or 5-digit parameter sliders; only the selected series' group is shown */
+    .param-group {
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    .param-group[hidden] {
+      display: none;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--rule);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .segmented label {
+      text-align: center;
+      padding: 0.4rem 0.5rem;
+      cursor: pointer;
+    }
+
+    .segmented input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .segmented label:has(input:checked) {
+      background: var(--accent);
+      color: var(--surface);
+      font-weight: 650;
+    }
+
+    .segmented label:has(input:focus-visible) {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    .slider {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.15rem 0.75rem;
+      align-items: baseline;
+    }
+
+    .slider label {
+      color: var(--fg);
+    }
+
+    .slider label i {
+      font-family: var(--font-body);
+    }
+
+    .slider output {
+      font-family: var(--font-mono);
+      font-size: 0.84rem;
+      color: var(--fg);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .slider output.out-of-range {
+      color: var(--warm);
+      font-weight: 500;
+    }
+
+    .slider input {
+      grid-column: 1 / -1;
+    }
+
+    .check {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .check input {
+      accent-color: var(--accent);
+      width: 1rem;
+      height: 1rem;
+      margin: 0;
+    }
+
+    .check:has(input:disabled) {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    /* Range track: the training interval (--trained-start to --trained-end, set from JS) in the neutral
+       track colour, the rest in extrapolation orange */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 1.4rem;
+      margin: 0;
+      background: transparent;
+      cursor: pointer;
+      --track-background: linear-gradient(to right,
+          var(--warm-soft) var(--trained-start, 0%), var(--track) var(--trained-start, 0%),
+          var(--track) var(--trained-end, 100%), var(--warm-soft) var(--trained-end, 100%));
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--track-background);
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--track-background);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      margin-top: -6px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--surface);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--surface);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    input[type="range"]:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    select {
+      width: 100%;
+      font: 0.84rem var(--font-mono);
+      color: var(--fg);
+      background: var(--bg);
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      padding: 0.35rem 0.4rem;
+    }
+
+    .hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    /* Figures */
+    .figures {
+      display: grid;
+      gap: 1rem;
+      min-width: 0;
+    }
+
+    /* Lift / drag numbers above the figures */
+    .readout {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+      gap: 0.75rem;
+    }
+
+    .stat {
+      display: grid;
+      gap: 0.1rem;
+    }
+
+    .stat .label {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .stat .label i {
+      text-transform: none;
+      letter-spacing: 0;
+      font-family: var(--font-body);
+      font-size: 1.1em;
+    }
+
+    .stat .value {
+      font-family: var(--font-mono);
+      font-size: 1.45rem;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+    }
+
+    .stat .value.compact {
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    /* Line under a value: the RANS reference while a test case is loaded, or a caption */
+    .stat .detail {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--muted);
+      min-height: 1.2em;
+    }
+
+    .stat .detail b {
+      color: var(--fg);
+      font-weight: 500;
+    }
+
+    /* Always in the layout, so entering extrapolation recolours it instead of pushing the figures down */
+    .banner {
+      margin: 0;
+      padding: 0.6rem 0.8rem;
+      border-radius: 5px;
+      font-family: var(--font-display);
+      font-size: 0.88rem;
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--rule);
+      border-left: 3px solid var(--track);
+      transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    }
+
+    .banner.warn {
+      background: var(--warm-soft);
+      color: var(--fg);
+      border-color: var(--warm-soft);
+      border-left-color: var(--warm);
+    }
+
+    .banner.error {
+      background: var(--accent-soft);
+      color: var(--fg);
+      border-color: var(--accent-soft);
+      border-left-color: var(--accent);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .banner {
+        transition: none;
+      }
+    }
+
+    /* Two figures side by side on wide screens */
+    .figure-pair {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1rem;
+    }
+
+    @media (min-width: 720px) {
+      .figure-pair {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+    }
+
+    figure {
+      margin: 0;
+      min-width: 0;
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    figure h2 {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 650;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.25rem 1rem;
+      align-items: baseline;
+    }
+
+    figure h2 i {
+      font-family: var(--font-body);
+      font-weight: 400;
+    }
+
+    .plot-legend {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+    }
+
+    .plot-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .plot-legend svg {
+      width: 22px;
+      height: 8px;
+      overflow: visible;
+    }
+
+    .plot {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .plot svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    /* SVG marks: axes */
+    .grid-line {
+      stroke: var(--rule);
+      stroke-width: 1;
+    }
+
+    .axis-line {
+      stroke: var(--muted);
+      stroke-width: 1;
+    }
+
+    .tick-label {
+      fill: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .axis-label {
+      fill: var(--muted);
+      font-family: var(--font-body);
+      font-style: italic;
+      font-size: 13px;
+    }
+
+    /* SVG marks: data */
+    .prediction-line {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 2;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+
+    .prediction-line.lower-surface {
+      stroke: var(--lower);
+    }
+
+    .prediction-marker {
+      fill: var(--accent);
+      stroke: var(--surface);
+      stroke-width: 2;
+    }
+
+    .rans-marker {
+      fill: none;
+      stroke: var(--fg);
+      stroke-width: 1.2;
+    }
+
+    /* SVG marks: airfoil drawing */
+    .airfoil-outline {
+      fill: var(--bg);
+      stroke: var(--fg);
+      stroke-width: 1.6;
+      stroke-linejoin: round;
+    }
+
+    .chord-line {
+      stroke: var(--muted);
+      stroke-width: 1;
+      stroke-dasharray: 4 4;
+    }
+
+    .freestream-reference {
+      stroke: var(--muted);
+      stroke-width: 1;
+      stroke-dasharray: 1 3;
+    }
+
+    .aoa-arc {
+      fill: none;
+      stroke: var(--fg);
+      stroke-width: 1.2;
+    }
+
+    .suction-line {
+      stroke: var(--accent);
+      stroke-width: 1;
+    }
+
+    .pressure-line {
+      stroke: var(--warm);
+      stroke-width: 1;
+    }
+
+    .pressure-envelope {
+      fill: none;
+      stroke: var(--muted);
+      stroke-width: 1;
+      opacity: 0.7;
+    }
+
+    .freestream-arrow {
+      stroke: var(--muted);
+      stroke-width: 1.5;
+    }
+
+    .freestream-arrowhead {
+      fill: var(--muted);
+    }
+
+    .notes {
+      font-size: 0.95rem;
+      color: var(--muted);
+      display: grid;
+      gap: 0.5rem;
+      max-width: 80ch;
+    }
+
+    .notes p {
+      margin: 0;
+    }
+
+    .status {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="masthead">
+      <h1>NACA Neural Surrogate Demo</h1>
+      <p class="lede">
+        Pick a NACA airfoil and flow conditions. The surrogate predicts surface pressure and skin friction at
+        800 points, then integrates them into lift and drag. All of it runs on your device with ONNX Runtime,
+        with no server and no CFD.
+      </p>
+    </header>
+
+    <div class="workspace">
+      <form class="panel controls" id="controls" autocomplete="off" onsubmit="return false">
+        <p class="hint">Slider tracks: grey marks the training range, orange marks extrapolation.</p>
+        <fieldset>
+          <legend>Airfoil Parameters</legend>
+          <div class="segmented" role="radiogroup" aria-label="NACA series">
+            <label><input type="radio" name="series" value="4" checked> 4-digit</label>
+            <label><input type="radio" name="series" value="5"> 5-digit</label>
+          </div>
+
+          <div class="param-group" id="naca4-params">
+            <div class="slider">
+              <label for="max-camber">Max camber <i>m</i>, % chord</label>
+              <output for="max-camber" id="max-camber-output"></output>
+              <input type="range" id="max-camber" min="0" max="9" step="0.1" value="2">
+            </div>
+            <div class="slider">
+              <label for="camber-position">Camber position <i>p</i> (<i>x</i> = <i>p</i>/10)</label>
+              <output for="camber-position" id="camber-position-output"></output>
+              <input type="range" id="camber-position" min="1" max="8" step="0.1" value="4">
+            </div>
+          </div>
+
+          <div class="param-group" id="naca5-params" hidden>
+            <div class="slider">
+              <label for="design-lift">Design lift <i>L</i> (<i>C<sub>l</sub></i> = 0.15<i>L</i>)</label>
+              <output for="design-lift" id="design-lift-output"></output>
+              <input type="range" id="design-lift" min="0" max="5" step="0.05" value="2">
+            </div>
+            <!-- max 8.4: from P = 20 (1 - 1/sqrt(3)) ≈ 8.45 the 5-digit camber line has no solution
+                 (NaN, and from about 8.9 camberLine in geometry.js never converges) -->
+            <div class="slider">
+              <label for="camber-position-5">Camber position <i>P</i> (<i>x</i> = <i>P</i>/20)</label>
+              <output for="camber-position-5" id="camber-position-5-output"></output>
+              <input type="range" id="camber-position-5" min="2" max="8.4" step="0.1" value="3">
+            </div>
+            <!-- Disabled, but a loaded test case still sets it so it matches the case name. AirfRANS solves the
+                 camber position with the normal-camber relation, which zeroes the reflex constant k
+                 (3(m - xf)^2 = m^3), so Q = 1 gives the same camber line as Q = 0 -->
+            <label class="check"><input type="checkbox" id="reflex" disabled aria-describedby="reflex-hint"> <span>Reflex camber (<i>Q</i> = 1)</span></label>
+            <p class="hint" id="reflex-hint">
+              Disabled: the AirfRANS generator zeroes the reflex term, so <i>Q</i> = 1 gives the same shape as <i>Q</i> = 0.
+            </p>
+          </div>
+
+          <div class="slider">
+            <label for="thickness">Thickness <i>t</i>, % chord</label>
+            <output for="thickness" id="thickness-output"></output>
+            <input type="range" id="thickness" min="3" max="24" step="0.1" value="12">
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Flow and Orientation Parameters</legend>
+          <div class="slider">
+            <label for="reynolds">Reynolds number <i>Re</i></label>
+            <output for="reynolds" id="reynolds-output"></output>
+            <input type="range" id="reynolds" min="1" max="8" step="0.05" value="4">
+          </div>
+          <div class="slider">
+            <label for="angle-of-attack">Angle of attack <i>&alpha;</i></label>
+            <output for="angle-of-attack" id="angle-of-attack-output"></output>
+            <input type="range" id="angle-of-attack" min="-10" max="20" step="0.1" value="4">
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Compare with RANS</legend>
+          <select id="rans-case" aria-label="Load an AirfRANS test case">
+            <option value="">Load a test case&hellip;</option>
+          </select>
+          <p class="hint">
+            Held-out AirfRANS test cases. Loading one sets the controls and overlays its RANS solution;
+            moving any control clears it. Link to one with <code>?case=N</code>.
+          </p>
+        </fieldset>
+      </form>
+
+      <div class="figures">
+        <p class="banner" id="banner" role="status">Inside the training range.</p>
+
+        <div class="panel readout" aria-live="polite">
+          <div class="stat">
+            <span class="label">Lift <i>C<sub>l</sub></i></span>
+            <span class="value" id="lift-value">&ndash;</span>
+            <span class="detail" id="lift-rans"></span>
+          </div>
+          <div class="stat">
+            <span class="label">Drag <i>C<sub>d</sub></i></span>
+            <span class="value" id="drag-value">&ndash;</span>
+            <span class="detail" id="drag-rans"></span>
+          </div>
+          <div class="stat">
+            <span class="label"><i>C<sub>l</sub></i> / <i>C<sub>d</sub></i></span>
+            <span class="value" id="lift-to-drag-value">&ndash;</span>
+            <span class="detail" id="lift-to-drag-rans"></span>
+          </div>
+          <div class="stat">
+            <span class="label">Drag split</span>
+            <span class="value compact" id="drag-split-value">&ndash;</span>
+            <span class="detail">pressure / friction</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <figure>
+            <h2>
+              <span>Surface pressure</span>
+              <span class="plot-legend">
+                <span><svg viewBox="0 0 22 8"><line x1="0" y1="4" x2="22" y2="4" class="suction-line" /></svg>suction (<i>C<sub>p</sub></i> &lt; 0)</span>
+                <span><svg viewBox="0 0 22 8"><line x1="0" y1="4" x2="22" y2="4" class="pressure-line" /></svg>overpressure (<i>C<sub>p</sub></i> &gt; 0)</span>
+              </span>
+            </h2>
+            <div class="plot" id="airfoil-plot"></div>
+          </figure>
+        </div>
+
+        <div class="figure-pair">
+          <div class="panel">
+            <figure>
+              <h2>
+                <span>Pressure coefficient <i>C<sub>p</sub></i></span>
+                <span class="plot-legend" id="pressure-legend"></span>
+              </h2>
+              <div class="plot" id="pressure-plot"></div>
+            </figure>
+          </div>
+          <div class="panel">
+            <figure>
+              <h2>
+                <span>Skin friction <i>C<sub>f</sub></i>, streamwise</span>
+                <span class="plot-legend" id="friction-legend"></span>
+              </h2>
+              <div class="plot" id="friction-plot"></div>
+            </figure>
+          </div>
+        </div>
+
+        <div class="notes">
+          <p class="status" id="status">Loading model&hellip;</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.29.0/dist/ort.wasm.min.mjs";
+    import { branchFeatures, integrateCoefficients, nacaCase, streamwiseCf, trunkFeatures } from "./geometry.js";
+
+    // ---------- types ----------
+
+    /** @typedef {import("./geometry.js").AirfoilGeometry} AirfoilGeometry */
+    /** @typedef {import("./geometry.js").ForceCoefficients} ForceCoefficients */
+
+    /**
+     * meta.json, written by experiments/export_web.py. Each range is [min, max] over the training cases.
+     * @typedef {object} DemoMeta
+     * @property {number} nb_samples - Generator samples per surface the model was trained with.
+     * @property {[number, number]} re - Trained Reynolds number range.
+     * @property {[number, number]} aoa_deg - Trained angle-of-attack range, degrees.
+     * @property {{m: number[], p: number[], t: number[]}} naca4 - Trained 4-digit parameter ranges.
+     * @property {{l: number[], p: number[], q: number[], t: number[]}} naca5 - Trained 5-digit parameter ranges.
+     * @property {{n_cases: number, cp_rel_l2: number, cf_rel_l2: number, cl_mae: number, cd_mae: number,
+     *   cd_mape: number}} test_metrics - Test-set errors quoted under the figures.
+     */
+
+    /**
+     * One AirfRANS test case from cases.json, with its RANS surface solution.
+     * @typedef {object} RansCase
+     * @property {string} name - AirfRANS case name.
+     * @property {4 | 5} series - NACA series.
+     * @property {number[]} naca - NACA parameters: [m, p, t] or [L, P, Q, t].
+     * @property {number} re - Reynolds number.
+     * @property {number} aoa_deg - Angle of attack, degrees.
+     * @property {number} ref_cl - RANS lift coefficient.
+     * @property {number} ref_cd - RANS drag coefficient.
+     * @property {number[]} x - Chord position of each RANS surface point.
+     * @property {number[]} upper - 1 for upper-surface points, 0 for lower.
+     * @property {number[]} cp - RANS pressure coefficient per point.
+     * @property {number[]} cf - RANS streamwise skin friction per point.
+     */
+
+    /**
+     * The model's prediction for the current control values.
+     * @typedef {object} Prediction
+     * @property {AirfoilGeometry} geometry - Surface the model was run on.
+     * @property {number} re - Reynolds number.
+     * @property {number} aoa - Angle of attack, degrees.
+     * @property {Float64Array} cp - Pressure coefficient per surface point.
+     * @property {Float64Array} cf - Streamwise skin friction per surface point.
+     * @property {ForceCoefficients} forces - Lift and drag integrated from cp and cf.
+     * @property {number} inferenceMs - How long the forward pass took.
+     */
+
+    /**
+     * One range slider.
+     * @typedef {object} SliderControl
+     * @property {string} id - Element id of the range input; its value readout is `<id>-output`.
+     * @property {string} symbol - Name used for it in the extrapolation banner.
+     * @property {(value: number) => string} format - Readout text for a value.
+     * @property {() => number[]} trainedRange - [min, max] of the training data, in slider units.
+     */
+
+    /**
+     * An axis range, widened to whole ticks.
+     * @typedef {[min: number, max: number, step: number]} AxisRange
+     */
+
+    /**
+     * Axes drawn by `drawAxes`, and the scales that map data onto them.
+     * @typedef {object} PlotAxes
+     * @property {number} width - SVG width, pixels.
+     * @property {number} height - SVG height, pixels.
+     * @property {(x: number) => number} xToPixel - Data x to SVG x.
+     * @property {(y: number) => number} yToPixel - Data y to SVG y.
+     * @property {string} svg - Gridlines, ticks and axis label markup.
+     */
+
+    // ---------- constants and state ----------
+
+    const byId = (id) => document.getElementById(id);
+
+    /** On-screen spacing between pressure lines on the airfoil drawing, pixels. */
+    const PRESSURE_LINE_SPACING_PX = 3.5;
+    /** Branch inputs per case: 16 upper and 16 lower shape-descriptor heights, then Re and AoA. */
+    const BRANCH_FEATURE_COUNT = 34;
+    /** Trunk inputs per surface point, see trunkFeatures in geometry.js. */
+    const TRUNK_FEATURE_COUNT = 7;
+
+    /**
+     * The range sliders, keyed by the name the code uses for them.
+     * @type {Record<string, SliderControl>}
+     */
+    const SLIDERS = {
+      maxCamber: {
+        id: "max-camber", symbol: "m", format: (v) => `${v.toFixed(1)}%`,
+        trainedRange: () => [0, meta.naca4.m[1]],
+      },
+      camberPosition: {
+        id: "camber-position", symbol: "p", format: (v) => v.toFixed(1),
+        trainedRange: () => meta.naca4.p,
+      },
+      designLift: {
+        id: "design-lift", symbol: "L", format: (v) => v.toFixed(2),
+        trainedRange: () => [0, meta.naca5.l[1]],
+      },
+      camberPosition5: {
+        id: "camber-position-5", symbol: "P", format: (v) => v.toFixed(1),
+        trainedRange: () => meta.naca5.p,
+      },
+      thickness: {
+        id: "thickness", symbol: "t", format: (v) => `${v.toFixed(1)}%`,
+        trainedRange: () => (selectedSeries() === 4 ? meta.naca4.t : meta.naca5.t),
+      },
+      reynolds: {
+        id: "reynolds", symbol: "Re", format: (v) => `${v.toFixed(2)} × 10⁶`,
+        trainedRange: () => meta.re.map((re) => re / 1e6),
+      },
+      angleOfAttack: {
+        id: "angle-of-attack", symbol: "α", format: (v) => `${v.toFixed(1)}°`,
+        trainedRange: () => meta.aoa_deg,
+      },
+    };
+
+    /** @type {DemoMeta} */
+    let meta;
+    /** @type {RansCase[]} */
+    let testCases;
+    /** @type {ort.InferenceSession} */
+    let session;
+    /** @type {AirfoilGeometry | null} */
+    let cachedGeometry = null;
+    let cachedGeometryKey = ""; // NACA parameters cachedGeometry was built from
+    /** @type {Prediction | null} */
+    let prediction = null; // at the slider AoA
+    /** @type {RansCase | null} */
+    let ransCase = null; // loaded test case, while the controls still match it
+    /** @type {Record<string, number>} */
+    let pinnedCaseValues = {}; // a loaded case's exact values for the sliders not moved since, which round to their step
+    /** @type {Record<string, AxisRange>} */
+    const heldRanges = {}; // y range per plot id, see heldRange
+    let predictionRequested = false, modelBusy = false;
+
+    // ---------- formatting ----------
+
+    /**
+     * Swap the hyphen for a true minus sign.
+     * @param {string} text - A formatted number.
+     * @returns {string}
+     */
+    function withMinusSign(text) {
+      return text.replace("-", "−");
+    }
+
+    /**
+     * @param {number} value
+     * @param {number} digits - Decimal places.
+     * @returns {string} The value with a true minus sign.
+     */
+    function formatNumber(value, digits) {
+      return withMinusSign(value.toFixed(digits));
+    }
+
+    // ---------- model ----------
+
+    /**
+     * A slider's value: the loaded case's exact value until that slider is moved, else the slider position.
+     * @param {string} name - Key in SLIDERS.
+     * @returns {number}
+     */
+    function sliderValue(name) {
+      return pinnedCaseValues[name] ?? Number(byId(SLIDERS[name].id).value);
+    }
+
+    /** @returns {4 | 5} The selected NACA series. */
+    function selectedSeries() {
+      return Number(document.querySelector('input[name="series"]:checked').value);
+    }
+
+    /**
+     * NACA parameters from the controls, in the order AirfRANS case names use.
+     * @returns {number[]} [m, p, t] for 4-digit, [L, P, Q, t] for 5-digit.
+     */
+    function nacaParams() {
+      return selectedSeries() === 4
+        ? [sliderValue("maxCamber"), sliderValue("camberPosition"), sliderValue("thickness")]
+        : [sliderValue("designLift"), sliderValue("camberPosition5"), byId("reflex").checked ? 1 : 0, sliderValue("thickness")];
+    }
+
+    /**
+     * Surface geometry for the current NACA parameters, rebuilt only when they change.
+     * @returns {AirfoilGeometry}
+     */
+    function currentGeometry() {
+      const params = nacaParams(), key = params.join(",");
+      if (key !== cachedGeometryKey) {
+        cachedGeometry = nacaCase(params, meta.nb_samples);
+        cachedGeometryKey = key;
+      }
+      return cachedGeometry;
+    }
+
+    /**
+     * Run the model for one geometry at several angles of attack, in one batched forward pass.
+     * @param {AirfoilGeometry} geometry - Airfoil surface.
+     * @param {number} re - Reynolds number.
+     * @param {number[]} aoasDeg - Angles of attack, degrees.
+     * @returns {Promise<{cp: Float64Array, cfTangential: Float64Array}[]>} Per AoA: Cp and Cf along the
+     *   surface tangent at each point.
+     */
+    async function runModel(geometry, re, aoasDeg) {
+      const pointCount = geometry.pos.length, batchSize = aoasDeg.length;
+      const branch = new Float32Array(batchSize * BRANCH_FEATURE_COUNT);
+      const trunk = new Float32Array(batchSize * pointCount * TRUNK_FEATURE_COUNT);
+      aoasDeg.forEach((aoa, i) => {
+        branch.set(branchFeatures(geometry.descriptor, re, aoa), i * BRANCH_FEATURE_COUNT);
+        trunkFeatures(geometry, aoa, trunk, i * pointCount * TRUNK_FEATURE_COUNT);
+      });
+      const { fields } = await session.run({
+        branch: new ort.Tensor("float32", branch, [batchSize, BRANCH_FEATURE_COUNT]),
+        trunk: new ort.Tensor("float32", trunk, [batchSize, pointCount, TRUNK_FEATURE_COUNT]),
+      });
+      // fields has shape [batch, point, 2]: Cp, then tangential Cf
+      return aoasDeg.map((_, i) => {
+        const cp = new Float64Array(pointCount), cfTangential = new Float64Array(pointCount);
+        for (let j = 0; j < pointCount; j++) {
+          const offset = 2 * (i * pointCount + j);
+          cp[j] = fields.data[offset];
+          cfTangential[j] = fields.data[offset + 1];
+        }
+        return { cp, cfTangential };
+      });
+    }
+
+    /** Re-predict on the next frame; a slider drag coalesces into one forward pass per frame. */
+    function requestPrediction() {
+      predictionRequested = true;
+      if (!modelBusy) requestAnimationFrame(runPrediction);
+    }
+
+    /** Predict at the current control values and redraw everything. */
+    async function runPrediction() {
+      if (!predictionRequested || modelBusy || !session) return;
+      predictionRequested = false;
+      modelBusy = true;
+      try {
+        const geometry = currentGeometry(), re = sliderValue("reynolds") * 1e6, aoa = sliderValue("angleOfAttack");
+        const start = performance.now();
+        const [{ cp, cfTangential }] = await runModel(geometry, re, [aoa]);
+        const inferenceMs = performance.now() - start;
+        prediction = {
+          geometry, re, aoa, cp,
+          cf: streamwiseCf(cfTangential, geometry.side),
+          forces: integrateCoefficients(geometry, cp, cfTangential, aoa),
+          inferenceMs,
+        };
+        render();
+      } catch (error) {
+        showError(error);
+      } finally {
+        modelBusy = false;
+      }
+      if (predictionRequested) requestAnimationFrame(runPrediction);
+    }
+
+    // ---------- plotting ----------
+
+    /**
+     * A round tick step (1, 2 or 5 times a power of ten) giving about `count` ticks over `span`.
+     * @param {number} span - Data range to cover.
+     * @param {number} count - Rough number of ticks wanted.
+     * @returns {number}
+     */
+    function niceStep(span, count) {
+      const raw = span / Math.max(count, 1), power = 10 ** Math.floor(Math.log10(raw));
+      const unit = raw / power;
+      return (unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 5 ? 5 : 10) * power;
+    }
+
+    /**
+     * Widen [min, max] outward to whole ticks of a round step.
+     * @param {number} min
+     * @param {number} max
+     * @param {number} count - Rough number of ticks wanted.
+     * @returns {AxisRange}
+     */
+    function niceRange(min, max, count) {
+      if (max - min < 1e-12) { min -= 0.5; max += 0.5; }
+      const step = niceStep(max - min, count);
+      return [Math.floor(min / step) * step, Math.ceil(max / step) * step, step];
+    }
+
+    /**
+     * Tick positions from min to max, with rounding noise at zero snapped to 0.
+     * @param {number} min
+     * @param {number} max
+     * @param {number} step
+     * @returns {number[]}
+     */
+    function tickValues(min, max, step) {
+      const values = [];
+      for (let v = Math.ceil(min / step - 1e-9) * step; v <= max + step * 1e-9; v += step) values.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+      return values;
+    }
+
+    /**
+     * @param {number} value - Tick position.
+     * @param {number} step - Tick step, which sets the number of decimals.
+     * @returns {string}
+     */
+    function tickLabel(value, step) {
+      const digits = Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
+      return formatNumber(value, digits);
+    }
+
+    /**
+     * A plot's y range. The previous range is kept while the data still fits inside it and fills at least
+     * half of it, so the axes don't jump while a slider is dragged or when the RANS overlay goes away.
+     * @param {string} plotId - Element id of the plot, the key the range is held under.
+     * @param {number} min - Smallest value to show.
+     * @param {number} max - Largest value to show.
+     * @returns {AxisRange}
+     */
+    function heldRange(plotId, min, max) {
+      const held = heldRanges[plotId];
+      if (held && min >= held[0] && max <= held[1] && max - min >= 0.5 * (held[1] - held[0])) return held;
+      return (heldRanges[plotId] = niceRange(min, max, 5));
+    }
+
+    /**
+     * Gridlines, tick labels and the x axis for a plot sized to its container's width.
+     * @param {HTMLElement} plot - Container the SVG will go in.
+     * @param {object} options
+     * @param {{domain: number[], step: number}} options.xAxis - x range and tick step.
+     * @param {AxisRange} options.yRange - y range and tick step, usually from `heldRange`.
+     * @param {number} options.height - SVG height, pixels.
+     * @param {string} options.xLabel - x axis label.
+     * @param {boolean} [options.invertY=false] - Plot y increasing downwards (for Cp).
+     * @returns {PlotAxes}
+     */
+    function drawAxes(plot, { xAxis, yRange, height, xLabel, invertY = false }) {
+      const width = Math.max(240, plot.clientWidth);
+      const margin = { left: 48, right: 12, top: 10, bottom: 34 };
+      const [xMin, xMax] = xAxis.domain, xStep = xAxis.step;
+      const [yMin, yMax, yStep] = yRange;
+      const xToPixel = (v) => margin.left + (v - xMin) / (xMax - xMin) * (width - margin.left - margin.right);
+      const yToPixelUpwards = (v) => margin.top + (yMax - v) / (yMax - yMin) * (height - margin.top - margin.bottom);
+      const yToPixel = invertY ? (v) => margin.top + height - margin.bottom - yToPixelUpwards(v) : yToPixelUpwards;
+      let svg = "";
+      for (const v of tickValues(yMin, yMax, yStep)) {
+        svg += `<line class="grid-line" x1="${margin.left}" x2="${width - margin.right}" y1="${yToPixel(v)}" y2="${yToPixel(v)}"/>`;
+        svg += `<text class="tick-label" x="${margin.left - 6}" y="${yToPixel(v) + 4}" text-anchor="end">${tickLabel(v, yStep)}</text>`;
+      }
+      for (const v of tickValues(xMin, xMax, xStep)) {
+        svg += `<text class="tick-label" x="${xToPixel(v)}" y="${height - margin.bottom + 16}" text-anchor="middle">${tickLabel(v, xStep)}</text>`;
+      }
+      svg += `<line class="axis-line" x1="${margin.left}" x2="${width - margin.right}" y1="${height - margin.bottom}" y2="${height - margin.bottom}"/>`;
+      svg += `<text class="axis-label" x="${width - margin.right}" y="${height - 4}" text-anchor="end">${xLabel}</text>`;
+      return { width, height, xToPixel, yToPixel, svg };
+    }
+
+    /**
+     * SVG path data through the points, skipping non-finite y values.
+     * @param {ArrayLike<number>} xs - Data x values.
+     * @param {ArrayLike<number>} ys - Data y values.
+     * @param {(x: number) => number} xToPixel
+     * @param {(y: number) => number} yToPixel
+     * @returns {string}
+     */
+    function pathData(xs, ys, xToPixel, yToPixel) {
+      let d = "";
+      for (let i = 0; i < xs.length; i++) {
+        if (!Number.isFinite(ys[i])) continue;
+        d += `${d ? "L" : "M"}${xToPixel(xs[i]).toFixed(1)},${yToPixel(ys[i]).toFixed(1)}`;
+      }
+      return d;
+    }
+
+    /**
+     * Point indices of the upper and lower surfaces, each sorted by x.
+     * @param {number[]} x - Chord position per point.
+     * @param {(i: number) => boolean} isUpper - Whether point i is on the upper surface.
+     * @returns {[number[], number[]]} [upper, lower]
+     */
+    function surfaceIndices(x, isUpper) {
+      const upper = [], lower = [];
+      x.forEach((_, i) => (isUpper(i) ? upper : lower).push(i));
+      const byX = (a, b) => x[a] - x[b];
+      return [upper.sort(byX), lower.sort(byX)];
+    }
+
+    /**
+     * Predicted values along the chord as two lines, upper surface in blue and lower in aqua.
+     * @param {number[]} x - Chord position per point.
+     * @param {ArrayLike<number>} values - Value per point.
+     * @param {(i: number) => boolean} isUpper - Whether point i is on the upper surface.
+     * @param {(x: number) => number} xToPixel
+     * @param {(y: number) => number} yToPixel
+     * @returns {string} SVG markup.
+     */
+    function predictionCurves(x, values, isUpper, xToPixel, yToPixel) {
+      return surfaceIndices(x, isUpper).map((indices, surface) => {
+        const className = surface === 1 ? "prediction-line lower-surface" : "prediction-line";
+        return `<path class="${className}" d="${pathData(indices.map((i) => x[i]), indices.map((i) => values[i]), xToPixel, yToPixel)}"/>`;
+      }).join("");
+    }
+
+    /**
+     * RANS values as hollow markers, thinned so neighbours sit at least `minGapPx` apart on screen (the CFD
+     * mesh clusters points at the leading edge, where every point would merge into a blob).
+     * @param {number[]} x - Chord position per RANS point.
+     * @param {number[]} values - RANS value per point.
+     * @param {(i: number) => boolean} isUpper - Whether point i is on the upper surface.
+     * @param {(x: number) => number} xToPixel
+     * @param {(y: number) => number} yToPixel
+     * @param {number} [minGapPx=9]
+     * @returns {string} SVG markup.
+     */
+    function ransMarkers(x, values, isUpper, xToPixel, yToPixel, minGapPx = 9) {
+      let svg = "";
+      for (const indices of surfaceIndices(x, isUpper)) {
+        let last = null;
+        for (const i of indices) {
+          const px = xToPixel(x[i]), py = yToPixel(values[i]);
+          if (last && Math.hypot(px - last[0], py - last[1]) < minGapPx) continue;
+          svg += `<circle class="rans-marker" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="2.6"/>`;
+          last = [px, py];
+        }
+      }
+      return svg;
+    }
+
+    /**
+     * @param {string} className - Class of the line being keyed.
+     * @returns {string} SVG of a short line, for a plot legend.
+     */
+    function legendLine(className) {
+      return `<svg viewBox="0 0 22 8"><line x1="0" y1="4" x2="22" y2="4" class="${className}"/></svg>`;
+    }
+
+    /**
+     * @param {string} className - Class of the marker being keyed.
+     * @returns {string} SVG of a single marker, for a plot legend.
+     */
+    function legendMarker(className) {
+      return `<svg viewBox="0 0 22 8"><circle cx="11" cy="4" r="2.6" class="${className}"/></svg>`;
+    }
+
+    /**
+     * Plot a surface field (Cp or Cf) against chord position, with the RANS solution if a case is loaded.
+     * @param {object} options
+     * @param {string} options.plotId - Element id of the plot container.
+     * @param {string} options.legendId - Element id of its legend.
+     * @param {"cp" | "cf"} options.field - Which field to plot.
+     * @param {number} options.height - SVG height, pixels.
+     * @param {boolean} options.invertY - Plot y increasing downwards.
+     */
+    function renderSurfaceFieldPlot({ plotId, legendId, field, height, invertY }) {
+      const plot = byId(plotId), { geometry } = prediction, x = geometry.pos.map((p) => p[0]);
+      const values = prediction[field];
+      let min = Math.min(...values), max = Math.max(...values);
+      if (ransCase) {
+        min = Math.min(min, ...ransCase[field]);
+        max = Math.max(max, ...ransCase[field]);
+      }
+      if (field === "cp") { min = Math.min(min, -1); max = Math.max(max, 1); } // Cp axis spans at least -1 to 1
+      const axes = drawAxes(plot, { xAxis: { domain: [0, 1], step: 0.2 }, yRange: heldRange(plotId, min, max), height, xLabel: "x / c", invertY });
+      let svg = axes.svg;
+      if (field === "cf") { // zero line, where the flow separates
+        svg += `<line class="axis-line" x1="${axes.xToPixel(0)}" x2="${axes.xToPixel(1)}" y1="${axes.yToPixel(0)}" y2="${axes.yToPixel(0)}" opacity="0.5"/>`;
+      }
+      svg += predictionCurves(x, values, (i) => geometry.side[i] > 0, axes.xToPixel, axes.yToPixel);
+      if (ransCase) svg += ransMarkers(ransCase.x, ransCase[field], (i) => ransCase.upper[i] === 1, axes.xToPixel, axes.yToPixel);
+      const description = field === "cp" ? "Pressure" : "Skin friction";
+      plot.innerHTML = `<svg viewBox="0 0 ${axes.width} ${axes.height}" role="img" aria-label="${description} coefficient along the chord">${svg}</svg>`;
+      byId(legendId).innerHTML = `<span>${legendLine("prediction-line")}upper</span><span>${legendLine("prediction-line lower-surface")}lower</span>`
+        + (ransCase ? `<span>${legendMarker("rans-marker")}RANS</span>` : "");
+    }
+
+    /**
+     * Draw the airfoil turned nose-up by the AoA about the quarter chord, with a line along the outward
+     * normal at each surface station whose length is proportional to |Cp|: blue for suction (Cp < 0),
+     * orange for overpressure (Cp > 0).
+     */
+    function renderAirfoil() {
+      const plot = byId("airfoil-plot"), { geometry, cp, aoa } = prediction;
+      const width = Math.max(240, plot.clientWidth), height = Math.round(Math.min(400, Math.max(200, width * 0.42)));
+      const aoaRad = aoa * Math.PI / 180, cosAoa = Math.cos(aoaRad), sinAoa = Math.sin(aoaRad);
+      const rotateNoseUp = ([x, y]) => [cosAoa * (x - 0.25) + sinAoa * y + 0.25, -sinAoa * (x - 0.25) + cosAoa * y];
+      const rotateVector = ([x, y]) => [cosAoa * x + sinAoa * y, -sinAoa * x + cosAoa * y];
+      const pixelsPerChord = Math.min((width - 40) / 1.55, (height - 20) / 0.9);
+      const originX = width / 2 - 0.42 * pixelsPerChord, originY = height * 0.55; // suction lines mostly rise above the chord
+      const toScreen = ([x, y]) => [originX + x * pixelsPerChord, originY - y * pixelsPerChord];
+      const chordsPerCp = 0.32 / Math.max(1, ...Array.from(cp, Math.abs)); // longest line 0.32 chord
+
+      // Surface point and pressure-line tip (on screen) at `fraction` of the way from point `from` to point `to`
+      const { pos, normals } = geometry, pointCount = pos.length;
+      // The trailing edge (point 0) averages the upper and lower normals into one along the chord, which
+      // would draw its line straight aft; it takes the normal of the neighbour on the side being drawn instead
+      const normalAt = (i, neighbour) => normals[i === 0 ? neighbour : i];
+      const surfaceStation = (from, to, fraction) => {
+        const lerp = (u, v) => u + (v - u) * fraction;
+        const [fromNormal, toNormal] = [normalAt(from, to), normalAt(to, from)];
+        const [nx, ny] = rotateVector([lerp(fromNormal[0], toNormal[0]), lerp(fromNormal[1], toNormal[1])]);
+        const normalLength = Math.hypot(nx, ny), stationCp = lerp(cp[from], cp[to]);
+        const base = rotateNoseUp([lerp(pos[from][0], pos[to][0]), lerp(pos[from][1], pos[to][1])]);
+        const lineLength = Math.abs(stationCp) * chordsPerCp / normalLength;
+        return { cp: stationCp, base: toScreen(base), tip: toScreen([base[0] - nx * lineLength, base[1] - ny * lineLength]) }; // normals point inward
+      };
+
+      // Lines at even arc-length steps about PRESSURE_LINE_SPACING_PX apart; the generator's points cluster
+      // at the nose and tail, so sampling them directly leaves the mid-chord sparse
+      const arcLength = [0]; // arcLength[j]: distance along the surface from point 0 to point j
+      geometry.cellLengths.forEach((length, j) => arcLength.push(arcLength[j] + length)); // segment j runs from point j to j + 1
+      const perimeter = arcLength[pointCount];
+      const lineCount = Math.round(perimeter * pixelsPerChord / PRESSURE_LINE_SPACING_PX);
+      let pressureLines = "";
+      for (let k = 0, j = 0; k < lineCount; k++) {
+        const target = (k + 0.5) * perimeter / lineCount;
+        while (arcLength[j + 1] < target) j++;
+        const station = surfaceStation(j, (j + 1) % pointCount, (target - arcLength[j]) / geometry.cellLengths[j]);
+        const [[x1, y1], [x2, y2]] = [station.base, station.tip];
+        pressureLines += `<line class="${station.cp < 0 ? "suction-line" : "pressure-line"}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+      }
+      // Envelope from the trailing edge's upper-side tip round to its lower-side tip; Z closes it across the tail
+      const envelopeTips = [surfaceStation(0, 1, 0), ...pos.slice(1).map((_, k) => surfaceStation(k + 1, k + 1, 0)),
+        surfaceStation(0, pointCount - 1, 0)];
+      const envelope = envelopeTips.map(({ tip }) => tip.map((v) => v.toFixed(1)).join(",")).join("L");
+      const outline = pos.map((p) => toScreen(rotateNoseUp(p)).map((v) => v.toFixed(1)).join(",")).join(" ");
+      // Angle of attack read off between the freestream direction and the chord, both through the
+      // quarter-chord pivot and run past the trailing edge as far as the plot allows, so the arc clears the airfoil
+      const referenceEndX = Math.min(1.5, (width - 8 - originX) / pixelsPerChord);
+      const [leadingEdge, chordEnd] = [toScreen(rotateNoseUp([0, 0])), toScreen(rotateNoseUp([referenceEndX, 0]))];
+      const [referenceStart, referenceEnd] = [toScreen([-0.15, 0]), toScreen([referenceEndX, 0])];
+      const arcRadius = (referenceEndX - 0.33) * pixelsPerChord, [pivotX, pivotY] = toScreen([0.25, 0]);
+      const arcEnd = [pivotX + arcRadius * cosAoa, pivotY + arcRadius * sinAoa];
+      const aoaArc = Math.abs(aoa) < 0.05 ? "" :
+        `<path class="aoa-arc" d="M${(pivotX + arcRadius).toFixed(1)},${pivotY.toFixed(1)}A${arcRadius.toFixed(1)},${arcRadius.toFixed(1)} 0 0 ${aoa > 0 ? 1 : 0} ${arcEnd[0].toFixed(1)},${arcEnd[1].toFixed(1)}"/>`;
+      const aoaLabelY = pivotY + (aoa >= 0 ? -7 : 16); // on the side of the reference line away from the arc
+      const arrowY = 22, arrowStartX = 8, arrowTipX = 64; // freestream arrow in the top-left corner, clear of the leading-edge lines
+      plot.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Airfoil at ${aoa.toFixed(1)} degrees with surface pressure lines">
+    ${aoaArc}
+    <text class="tick-label" x="${referenceEnd[0].toFixed(1)}" y="${aoaLabelY.toFixed(1)}" text-anchor="end"><tspan font-style="italic">α</tspan> = ${aoa.toFixed(1)}°</text>
+    ${pressureLines}<path class="pressure-envelope" d="M${envelope}Z"/>
+    <polygon class="airfoil-outline" points="${outline}"/>
+    <line class="freestream-reference" x1="${referenceStart[0]}" y1="${referenceStart[1]}" x2="${referenceEnd[0]}" y2="${referenceEnd[1]}"/>
+    <line class="chord-line" x1="${leadingEdge[0]}" y1="${leadingEdge[1]}" x2="${chordEnd[0]}" y2="${chordEnd[1]}"/>
+    <line class="freestream-arrow" x1="${arrowStartX}" y1="${arrowY}" x2="${arrowTipX - 8}" y2="${arrowY}"/>
+    <path class="freestream-arrowhead" d="M${arrowTipX},${arrowY} l-10,-4.5 v9 z"/>
+    <text class="tick-label" x="${arrowTipX + 6}" y="${arrowY + 4}">U<tspan font-size="8" dy="3">∞</tspan></text>
+  </svg>`;
+    }
+
+    /** Fill in the lift / drag numbers, their RANS references and the timing line. */
+    function renderReadout() {
+      const { cl, cd, cd_pressure: cdPressure, cd_viscous: cdViscous } = prediction.forces;
+      byId("lift-value").textContent = formatNumber(cl, 3);
+      byId("drag-value").textContent = formatNumber(cd, 5);
+      byId("lift-to-drag-value").textContent = formatNumber(cl / cd, 1);
+      byId("drag-split-value").textContent = `${formatNumber(cdPressure, 5)} / ${formatNumber(cdViscous, 5)}`;
+      byId("lift-rans").innerHTML = ransCase ? `RANS <b>${formatNumber(ransCase.ref_cl, 3)}</b>` : "";
+      byId("drag-rans").innerHTML = ransCase ? `RANS <b>${formatNumber(ransCase.ref_cd, 5)}</b>` : "";
+      byId("lift-to-drag-rans").innerHTML = ransCase ? `RANS <b>${formatNumber(ransCase.ref_cl / ransCase.ref_cd, 1)}</b>` : "";
+      const threads = ort.env.wasm.numThreads;
+      byId("status").textContent = `Last prediction: ${prediction.inferenceMs.toFixed(1)} ms for ${prediction.geometry.pos.length} points `
+        + `(ONNX Runtime Web ${ort.env.versions?.web ?? ""}, ${threads} thread${threads > 1 ? "s" : ""}).`;
+    }
+
+    /** Redraw everything from the current prediction. */
+    function render() {
+      renderReadout();
+      renderAirfoil();
+      renderSurfaceFieldPlot({ plotId: "pressure-plot", legendId: "pressure-legend", field: "cp", height: 260, invertY: true });
+      renderSurfaceFieldPlot({ plotId: "friction-plot", legendId: "friction-legend", field: "cf", height: 260, invertY: false });
+      renderBanner();
+    }
+
+    // ---------- controls ----------
+
+    /**
+     * @returns {string[]} SLIDERS names of the sliders the current airfoil and flow depend on, in the
+     *   order the banner lists them.
+     */
+    function activeSliders() {
+      const airfoil = selectedSeries() === 4 ? ["maxCamber", "camberPosition", "thickness"] : ["designLift", "camberPosition5", "thickness"];
+      return ["reynolds", "angleOfAttack", ...airfoil];
+    }
+
+    /**
+     * Training range of a slider, rounded outward to one decimal (AoA -4.934..14.926 shows as -5..15).
+     * @param {string} name - Key in SLIDERS.
+     * @returns {number[]} [min, max] in slider units.
+     */
+    function trainingRange(name) {
+      const [min, max] = SLIDERS[name].trainedRange();
+      return [Math.floor(min * 10) / 10, Math.ceil(max * 10) / 10];
+    }
+
+    /**
+     * Whether a slider's value lies outside the training data. p does nothing without camber, and p = 0 is
+     * an AirfRANS special case that is in the training set, though the slider doesn't offer it.
+     * @param {string} name - Key in SLIDERS.
+     * @returns {boolean}
+     */
+    function isOutsideTraining(name) {
+      if (name === "camberPosition" && (sliderValue("maxCamber") === 0 || sliderValue("camberPosition") === 0)) return false;
+      const [min, max] = trainingRange(name), value = sliderValue(name);
+      return value < min - 1e-9 || value > max + 1e-9;
+    }
+
+    /**
+     * The active sliders outside the training data.
+     * @returns {{symbol: string, detail: string}[]} e.g. { symbol: "Re", detail: "Re 7.20 × 10⁶ (training 2.00 × 10⁶–6.00 × 10⁶)" }
+     */
+    function outsideTraining() {
+      return activeSliders().filter(isOutsideTraining).map((name) => {
+        const { symbol, format } = SLIDERS[name], [min, max] = trainingRange(name).map(format);
+        return { symbol, detail: `${symbol} ${format(sliderValue(name))} (training ${min}–${max})`.replaceAll("-", "−") };
+      });
+    }
+
+    /** Say whether the model is extrapolating. Kept to one short line so the banner's height stays put; the full ranges go in the tooltip. */
+    function renderBanner() {
+      const outside = outsideTraining(), banner = byId("banner");
+      banner.className = outside.length ? "banner warn" : "banner";
+      banner.textContent = outside.length
+        ? `Extrapolating in ${outside.map((o) => o.symbol).join(", ")}. Expect larger errors here.`
+        : "Inside the training range.";
+      banner.title = outside.map((o) => o.detail).join("\n");
+    }
+
+    /**
+     * A test case's exact slider values, which the sliders themselves round to their step.
+     * @param {RansCase} testCase
+     * @returns {Record<string, number>} Values keyed by SLIDERS name.
+     */
+    function caseSliderValues(testCase) {
+      const { naca } = testCase;
+      const airfoil = testCase.series === 4
+        ? { maxCamber: naca[0], camberPosition: naca[1], thickness: naca[2] }
+        : { designLift: naca[0], camberPosition5: naca[1], thickness: naca[3] };
+      return { ...airfoil, reynolds: testCase.re / 1e6, angleOfAttack: testCase.aoa_deg };
+    }
+
+    /**
+     * Refresh every slider's readout, its training-range track and out-of-range colour, and show the
+     * selected series' parameters.
+     */
+    function syncControls() {
+      for (const [name, { id, format }] of Object.entries(SLIDERS)) {
+        const slider = byId(id), [trainedMin, trainedMax] = trainingRange(name);
+        const percent = (v) => `${(100 * (v - slider.min) / (slider.max - slider.min)).toFixed(2)}%`;
+        slider.style.setProperty("--trained-start", percent(trainedMin));
+        slider.style.setProperty("--trained-end", percent(trainedMax));
+        const output = byId(`${id}-output`);
+        output.textContent = withMinusSign(format(sliderValue(name)));
+        output.classList.toggle("out-of-range", isOutsideTraining(name));
+      }
+      byId("camber-position").disabled = sliderValue("maxCamber") === 0; // p does nothing without camber
+      const isFourDigit = selectedSeries() === 4;
+      byId("naca4-params").hidden = !isFourDigit;
+      byId("naca5-params").hidden = isFourDigit;
+    }
+
+    /** @param {4 | 5} series */
+    function setSeries(series) {
+      document.querySelector(`input[name="series"][value="${series}"]`).checked = true;
+    }
+
+    /**
+     * Handle a change to any control. It clears the RANS overlay; a moved slider drops its own pinned
+     * value, and the series toggle drops them all, while the other sliders keep the loaded case's exact values.
+     * @param {HTMLInputElement} [target] - The control that changed; omitted for a cleared case.
+     */
+    function onUserInput(target) {
+      if (ransCase) {
+        ransCase = null;
+        byId("rans-case").value = "";
+      }
+      if (target?.name === "series") pinnedCaseValues = {};
+      else if (target) delete pinnedCaseValues[Object.keys(SLIDERS).find((name) => SLIDERS[name].id === target.id)];
+      syncControls();
+      requestPrediction();
+    }
+
+    /**
+     * Set the controls to a test case and overlay its RANS solution.
+     * @param {number} index - Index into testCases.
+     */
+    function loadCase(index) {
+      const testCase = testCases[index];
+      setSeries(testCase.series);
+      pinnedCaseValues = caseSliderValues(testCase);
+      for (const [name, value] of Object.entries(pinnedCaseValues)) byId(SLIDERS[name].id).value = value;
+      if (testCase.series === 5) byId("reflex").checked = testCase.naca[2] === 1;
+      ransCase = testCase;
+      syncControls();
+      requestPrediction();
+    }
+
+    /** @param {Error | string} error - Shown in the banner, with a hint for the common file:// mistake. */
+    function showError(error) {
+      console.error(error);
+      const banner = byId("banner");
+      banner.className = "banner error";
+      banner.textContent = location.protocol === "file:"
+        ? "This page loads its model with fetch, which browsers block for file:// pages. Serve the docs folder instead: python -m http.server -d docs, then open http://localhost:8000/demo/."
+        : `Could not run the model: ${error.message ?? error}`;
+    }
+
+    /**
+     * @param {RansCase} testCase
+     * @returns {string} Dropdown text, e.g. "NACA4 (2, 4, 12) · Re 4.0 × 10⁶ · α 3.0°".
+     */
+    function caseLabel(testCase) {
+      const params = testCase.naca.map((v) => Number(v.toFixed(2))).join(", ");
+      return `NACA${testCase.series} (${params}) · Re ${(testCase.re / 1e6).toFixed(1)} × 10⁶ · α ${testCase.aoa_deg.toFixed(1)}°`;
+    }
+
+    // ---------- startup ----------
+
+    /** Load the model and data, wire up the controls and make the first prediction. */
+    async function main() {
+      try {
+        [meta, testCases] = await Promise.all(["meta.json", "cases.json"].map((file) => fetch(file).then((response) => {
+          if (!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
+          return response.json();
+        })));
+        ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.min(4, navigator.hardwareConcurrency || 1) : 1;
+        session = await ort.InferenceSession.create("model.onnx", { executionProviders: ["wasm"] });
+      } catch (error) {
+        byId("status").textContent = "Model failed to load.";
+        showError(error);
+        return;
+      }
+
+      const caseSelect = byId("rans-case");
+      testCases.forEach((testCase, i) => caseSelect.add(new Option(caseLabel(testCase), i)));
+      caseSelect.addEventListener("change", (e) => (e.target.value === "" ? onUserInput() : loadCase(Number(e.target.value))));
+      byId("controls").addEventListener("input", (e) => { if (e.target !== caseSelect) onUserInput(e.target); });
+      new ResizeObserver(() => { if (prediction) render(); }).observe(document.querySelector(".figures"));
+
+      const query = new URLSearchParams(location.search), linkedCase = Number(query.get("case"));
+      if (query.has("case") && testCases[linkedCase]) {
+        caseSelect.value = linkedCase;
+        loadCase(linkedCase);
+      } else {
+        syncControls();
+        requestPrediction();
+      }
+    }
+
+    main();
+  </script>
+</body>
+
+</html>

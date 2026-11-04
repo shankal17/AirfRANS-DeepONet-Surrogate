@@ -1,0 +1,32 @@
+[project]
+name = "airfrans-surrogate"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Austin Shank",email = "shankaustin17@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "airfrans",
+    "pyvista",
+    "numpy",
+    "pandas",
+    "torch",
+    "matplotlib",
+    "tqdm",
+    "vtk (<9.7.2)",
+]
+
+[tool.poetry]
+packages = [{include = "airfrans_surrogate", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "onnxruntime (>=1.31.1,<2.0.0) ; python_version >= \"3.11\"",
+    "onnxscript (>=0.7.2,<0.8.0)"
+]
