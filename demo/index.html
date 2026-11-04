@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>DeepONet airfoil demo</title>
   <meta name="description"
-    content="Interactive demo: the DeepONet surrogate predicts surface pressure, skin friction, lift and drag of a NACA airfoil, running entirely in your browser.">
+    content="Interactive demo: the DeepONet surrogate predicts the pressure, skin-friction, lift and drag coefficients of a NACA airfoil, running entirely in your browser.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
@@ -192,19 +192,21 @@
       min-width: 0;
     }
 
+    /* Section headings: an accent bar and full-strength text so each group reads as its own section */
     .controls legend {
-      font-size: 0.72rem;
+      font-size: 0.8rem;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      font-weight: 650;
-      padding: 0;
-      margin-bottom: 0.5rem;
+      letter-spacing: 0.1em;
+      line-height: 1.2;
+      color: var(--fg);
+      font-weight: 700;
+      padding: 0 0 0 0.55rem;
+      border-left: 3px solid var(--accent);
+      margin-bottom: 0.6rem;
     }
 
     .controls fieldset+fieldset {
-      border-top: 1px solid var(--rule);
-      padding-top: 1rem;
+      margin-top: 0.9rem;
     }
 
     /* The 4-digit or 5-digit parameter sliders; only the selected series' group is shown */
@@ -377,13 +379,20 @@
     /* Lift / drag numbers above the figures */
     .readout {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
-      gap: 0.75rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
+    /* Each number centred in its column, with a rule between columns */
     .stat {
       display: grid;
       gap: 0.1rem;
+      justify-items: center;
+      text-align: center;
+      padding: 0 0.5rem;
+    }
+
+    .stat+.stat {
+      border-left: 1px solid var(--rule);
     }
 
     .stat .label {
@@ -404,14 +413,9 @@
 
     .stat .value {
       font-family: var(--font-mono);
-      font-size: 1.45rem;
+      font-size: clamp(1.1rem, 0.9rem + 1.2vw, 1.45rem);
       font-variant-numeric: tabular-nums;
       line-height: 1.2;
-    }
-
-    .stat .value.compact {
-      font-size: 0.95rem;
-      line-height: 1.5;
     }
 
     /* Line under a value: the RANS reference while a test case is loaded, or a caption */
@@ -658,8 +662,9 @@
     <header class="masthead">
       <h1>NACA Airfoil Neural Surrogate Demo</h1>
       <p class="lede">
-        Pick a NACA 4 or 5 point airfoil and flow conditions. The surrogate predicts in real-time surface pressure and skin friction at
-        800 points, then integrates them into lift and drag.
+        Pick a NACA 4- or 5-digit airfoil and flow conditions. In real time, the surrogate predicts the pressure coefficient
+        <i>C<sub>p</sub></i> and skin-friction coefficient <i>C<sub>f</sub></i> at 800 surface points, then integrates them into
+        the lift and drag coefficients <i>C<sub>l</sub></i> and <i>C<sub>d</sub></i>.
       </p>
       <a class="repo-link" href="https://github.com/shankal17/AirfRANS-DeepONet-Surrogate">
         <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
@@ -764,11 +769,6 @@
             <span class="label"><i>C<sub>l</sub></i> / <i>C<sub>d</sub></i></span>
             <span class="value" id="lift-to-drag-value">&ndash;</span>
             <span class="detail" id="lift-to-drag-rans"></span>
-          </div>
-          <div class="stat">
-            <span class="label">Drag split</span>
-            <span class="value compact" id="drag-split-value">&ndash;</span>
-            <span class="detail">pressure / friction</span>
           </div>
         </div>
 
@@ -1363,11 +1363,10 @@
 
     /** Fill in the lift / drag numbers, their RANS references and the timing line. */
     function renderReadout() {
-      const { cl, cd, cd_pressure: cdPressure, cd_viscous: cdViscous } = prediction.forces;
+      const { cl, cd } = prediction.forces;
       byId("lift-value").textContent = formatNumber(cl, 3);
       byId("drag-value").textContent = formatNumber(cd, 5);
       byId("lift-to-drag-value").textContent = formatNumber(cl / cd, 1);
-      byId("drag-split-value").textContent = `${formatNumber(cdPressure, 5)} / ${formatNumber(cdViscous, 5)}`;
       byId("lift-rans").innerHTML = ransCase ? `RANS <b>${formatNumber(ransCase.ref_cl, 3)}</b>` : "";
       byId("drag-rans").innerHTML = ransCase ? `RANS <b>${formatNumber(ransCase.ref_cd, 5)}</b>` : "";
       byId("lift-to-drag-rans").innerHTML = ransCase ? `RANS <b>${formatNumber(ransCase.ref_cl / ransCase.ref_cd, 1)}</b>` : "";
