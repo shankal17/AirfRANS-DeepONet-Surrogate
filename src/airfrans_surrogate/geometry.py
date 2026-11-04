@@ -155,7 +155,7 @@ def resample_by_side(values: np.ndarray, pos: np.ndarray, side: np.ndarray, stat
 def naca_case(naca, nb_samples: int = 400) -> dict:
     """Surface geometry of a NACA airfoil from the AirfRANS generator, in the layout of an extracted case.
 
-    docs/demo/geometry.js ports this function; keep the two in step.
+    demo/geometry.js ports this function; keep the two in step.
 
     Args:
         naca (array_like): NACA parameters, 3 (4-digit) or 4 (5-digit) as in AirfRANS case names.

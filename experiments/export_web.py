@@ -1,7 +1,7 @@
-"""Export the model full.py trained for the in-browser demo (docs/demo/).
+"""Export the model full.py trained for the in-browser demo (demo/).
 
 Writes model.onnx (normalisation baked in), meta.json (training ranges and test metrics) and
-cases.json (a few test cases with their RANS fields, for overlays) to docs/demo/, and
+cases.json (a few test cases with their RANS fields, for overlays) to demo/, and
 tests/web_fixtures.json (Python reference values that tests/test_web.mjs checks the JavaScript
 port against). Before writing anything it checks that ONNX Runtime matches PyTorch, and reports
 how much the predicted forces move when the geometry comes from the NACA generator (as in the

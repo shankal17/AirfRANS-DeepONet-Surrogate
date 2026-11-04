@@ -1500,7 +1500,7 @@
       const banner = byId("banner");
       banner.className = "banner error";
       banner.textContent = location.protocol === "file:"
-        ? "This page loads its model with fetch, which browsers block for file:// pages. Serve the docs folder instead: python -m http.server -d docs, then open http://localhost:8000/demo/."
+        ? "This page loads its model with fetch, which browsers block for file:// pages. Serve the demo folder instead: python -m http.server -d demo, then open http://localhost:8000/."
         : `Could not run the model: ${error.message ?? error}`;
     }
 
