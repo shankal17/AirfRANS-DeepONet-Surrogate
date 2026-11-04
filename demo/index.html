@@ -523,7 +523,7 @@
       flex-wrap: wrap;
     }
 
-    .plot-legend span {
+    .plot-legend > span {
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
@@ -770,7 +770,9 @@
       <p class="lede">
         Pick a NACA 4- or 5-digit airfoil and flow conditions. In real time, the surrogate predicts the pressure coefficient
         <i>C<sub>p</sub></i> and skin-friction coefficient <i>C<sub>f</sub></i> at 800 surface points, then integrates them into
-        the lift and drag coefficients <i>C<sub>l</sub></i> and <i>C<sub>d</sub></i>.
+        the lift and drag coefficients <i>C<sub>l</sub></i> and <i>C<sub>d</sub></i>. 
+        This particular problem of a 2d airfoil has other acceptably fast solutions, but neural operators extend into other more difficult 
+        applications where other fast solutions do not exist.
       </p>
       <nav class="masthead-links">
         <!-- <a href="#methodology">Methodology &darr;</a> -->
@@ -884,10 +886,10 @@
         <div class="panel">
           <figure>
             <h2>
-              <span>Surface pressure</span>
+              <span>Surface Distribution</span>
               <span class="plot-legend">
-                <span><svg viewBox="0 0 22 8"><line x1="0" y1="4" x2="22" y2="4" class="suction-line" /></svg>suction (<i>C<sub>p</sub></i> &lt; 0)</span>
-                <span><svg viewBox="0 0 22 8"><line x1="0" y1="4" x2="22" y2="4" class="pressure-line" /></svg>overpressure (<i>C<sub>p</sub></i> &gt; 0)</span>
+                <span><svg viewBox="0 0 22 8"><line x1="0" y1="4" x2="22" y2="4" class="suction-line" /></svg><span>Low Pressure (<i>C<sub>p</sub></i> &lt; 0)</span></span>
+                <span><svg viewBox="0 0 22 8"><line x1="0" y1="4" x2="22" y2="4" class="pressure-line" /></svg><span>High Pressure (<i>C<sub>p</sub></i> &gt; 0)</span></span>
               </span>
             </h2>
             <div class="plot" id="airfoil-plot"></div>
@@ -898,7 +900,7 @@
           <div class="panel">
             <figure>
               <h2>
-                <span>Pressure coefficient <i>C<sub>p</sub></i></span>
+                <span>Pressure Coefficient <i>C<sub>p</sub></i></span>
                 <span class="plot-legend" id="pressure-legend"></span>
               </h2>
               <div class="plot" id="pressure-plot"></div>
@@ -907,7 +909,7 @@
           <div class="panel">
             <figure>
               <h2>
-                <span>Skin friction <i>C<sub>f</sub></i>, streamwise</span>
+                <span>Skin Friction Coefficient <i>C<sub>f</sub></i></span>
                 <span class="plot-legend" id="friction-legend"></span>
               </h2>
               <div class="plot" id="friction-plot"></div>
@@ -1431,14 +1433,14 @@
       if (ransCase) svg += ransMarkers(ransCase.x, ransCase[field], (i) => ransCase.upper[i] === 1, axes.xToPixel, axes.yToPixel);
       const description = field === "cp" ? "Pressure" : "Skin friction";
       plot.innerHTML = `<svg viewBox="0 0 ${axes.width} ${axes.height}" role="img" aria-label="${description} coefficient along the chord">${svg}</svg>`;
-      byId(legendId).innerHTML = `<span>${legendLine("prediction-line")}upper</span><span>${legendLine("prediction-line lower-surface")}lower</span>`
+      byId(legendId).innerHTML = `<span>${legendLine("prediction-line")}upper surface</span><span>${legendLine("prediction-line lower-surface")}lower surface</span>`
         + (ransCase ? `<span>${legendMarker("rans-marker")}RANS</span>` : "");
     }
 
     /**
      * Draw the airfoil turned nose-up by the AoA about the quarter chord, with a line along the outward
-     * normal at each surface station whose length is proportional to |Cp|: blue for suction (Cp < 0),
-     * orange for overpressure (Cp > 0).
+     * normal at each surface station whose length is proportional to |Cp|: blue for low-pressure (Cp < 0),
+     * orange for high-pressure (Cp > 0).
      */
     function renderAirfoil() {
       const plot = byId("airfoil-plot"), { geometry, cp, aoa } = prediction;
