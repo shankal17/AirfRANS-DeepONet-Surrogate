@@ -1517,9 +1517,9 @@
       byId("lift-value").textContent = formatNumber(cl, 3);
       byId("drag-value").textContent = formatNumber(cd, 5);
       byId("lift-to-drag-value").textContent = formatNumber(cl / cd, 1);
-      byId("lift-rans").innerHTML = ransCase ? `RANS <b>${formatNumber(ransCase.ref_cl, 3)}</b>` : "";
-      byId("drag-rans").innerHTML = ransCase ? `RANS <b>${formatNumber(ransCase.ref_cd, 5)}</b>` : "";
-      byId("lift-to-drag-rans").innerHTML = ransCase ? `RANS <b>${formatNumber(ransCase.ref_cl / ransCase.ref_cd, 1)}</b>` : "";
+      byId("lift-rans").innerHTML = ransCase ? `RANS Ground Truth <b>${formatNumber(ransCase.ref_cl, 3)}</b>` : "";
+      byId("drag-rans").innerHTML = ransCase ? `RANS Ground Truth <b>${formatNumber(ransCase.ref_cd, 5)}</b>` : "";
+      byId("lift-to-drag-rans").innerHTML = ransCase ? `RANS Ground Truth <b>${formatNumber(ransCase.ref_cl / ransCase.ref_cd, 1)}</b>` : "";
       const threads = ort.env.wasm.numThreads;
       byId("status").textContent = `Last prediction: ${prediction.inferenceMs.toFixed(1)} ms for ${prediction.geometry.pos.length} points `
         + `(ONNX Runtime Web ${ort.env.versions?.web ?? ""}, ${threads} thread${threads > 1 ? "s" : ""}).`;
