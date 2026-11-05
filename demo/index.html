@@ -1434,7 +1434,7 @@
       const description = field === "cp" ? "Pressure" : "Skin friction";
       plot.innerHTML = `<svg viewBox="0 0 ${axes.width} ${axes.height}" role="img" aria-label="${description} coefficient along the chord">${svg}</svg>`;
       byId(legendId).innerHTML = `<span>${legendLine("prediction-line")}upper surface</span><span>${legendLine("prediction-line lower-surface")}lower surface</span>`
-        + (ransCase ? `<span>${legendMarker("rans-marker")}RANS</span>` : "");
+        + (ransCase ? `<span>${legendMarker("rans-marker")}RANS Ground Truth</span>` : "");
     }
 
     /**
