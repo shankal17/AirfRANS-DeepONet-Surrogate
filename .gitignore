@@ -1,5 +1,4 @@
 data/
-figures/
-runs/
+*.pt
 results/
 __pycache__/
