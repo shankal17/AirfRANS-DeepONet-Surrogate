@@ -229,7 +229,7 @@ def fig_case(name, case, target, found, true, histories, floor, path):
     for text, cp, color, style in curves:
         for i, surface in enumerate((slice(0, N_STATIONS), slice(N_STATIONS, None))):
             ax_cp.plot(stations, -cp[surface], color=color, linestyle=style, linewidth=1.2, label=text if i == 0 else None)
-    ax_cp.set(xlabel="x/c", ylabel="−Cp", title=f"Re {float(case['re']) / 1e6:.2f} M, AoA {float(case['aoa_deg']):.2f}°")
+    ax_cp.set(xlabel="x/c", ylabel="−Cp", title=f"Re {float(case['re']) / 1e6:.2f}*10^6, AoA {float(case['aoa_deg']):.2f}°")
     ax_cp.legend(loc="upper right")
 
     for text, naca, color, style in (("found", found["naca"], viz.BLUE, "-"), ("true", true["naca"], viz.ORANGE, "--")):
@@ -313,7 +313,7 @@ def animate_search(name, case, target, traces, family, bounds, true_naca, floor,
     grid = fig.add_gridspec(2, 3, height_ratios=(0.8, 1), left=0.06, right=0.98, top=0.88, bottom=0.08, hspace=0.3, wspace=0.28)
     ax_foil = fig.add_subplot(grid[0, :])
     ax_cp, ax_params, ax_loss = (fig.add_subplot(grid[1, i]) for i in range(3))
-    fig.text(0.06, 0.96, f"Inverse design: which {family} airfoil gives this Cp?  (Re {re / 1e6:.2f} M, AoA {aoa:.2f}°)",
+    fig.text(0.06, 0.96, f"Inverse design: which {family} airfoil gives this Cp?  (Re {re / 1e6:.2f}*10^6, AoA {aoa:.2f}°)",
              fontsize=11, va="center")
     readout = fig.text(0.06, 0.925, "", fontsize=9, va="center", color=viz.INK_MUTED, family="monospace")
 
@@ -401,7 +401,7 @@ def fig_summary(results, path):
             ax_cp.plot(stations, -result["target"][surface], color=viz.INK, lw=1.2, label="RANS target" if surface.start == 0 else None)
             ax_cp.plot(stations, -result["found_cp"][surface], color=viz.BLUE, lw=1.2, ls="--",
                        label="model, found airfoil" if surface.start == 0 else None)
-        ax_cp.set(xlabel="x/c", title=f"AoA {result['aoa']:.1f}°, Re {result['re'] / 1e6:.1f} M\n"
+        ax_cp.set(xlabel="x/c", title=f"AoA {result['aoa']:.1f}°, Re {result['re'] / 1e6:.1f}*10^6\n"
                                       f"Cp RMSE {result['loss']:.4f} (floor {result['floor']:.4f})")
         if i == 0:
             ax_cp.set_ylabel("−Cp")

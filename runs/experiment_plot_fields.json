@@ -1,0 +1,60 @@
+{
+ "name": "plot_fields",
+ "stages": [
+  "plot"
+ ],
+ "paths": {
+  "raw": "data/raw",
+  "data": "data/surface",
+  "runs": "runs",
+  "validation_figs": "figures/validation",
+  "eval_figs": "figures/eval",
+  "results": "results"
+ },
+ "extract": {
+  "workers": 19,
+  "limit": null
+ },
+ "validate": {
+  "tolerance": 1e-06
+ },
+ "train": {
+  "hidden_layer_width": 256,
+  "num_hidden_layers": 4,
+  "n_basis": 128,
+  "n_fourier": 16,
+  "epochs": 300,
+  "batch_size": 16,
+  "learning_rate": 0.001,
+  "weight_decay": 1e-05,
+  "force_weight": 0.03,
+  "force_start": 0.3,
+  "length_weight": 0.5,
+  "cf_tangential": true,
+  "trunk_aoa": true,
+  "model_selection_metric": "case_rmse",
+  "tasks": [
+   "full"
+  ],
+  "seed": 0,
+  "task_overrides": {}
+ },
+ "sweep": {
+  "task": "full",
+  "param": "force_weight",
+  "values": [
+   0.0,
+   0.01,
+   0.03,
+   0.1
+  ],
+  "holdout": "random",
+  "out": "runs_sweep"
+ },
+ "plot": {
+  "split": "test",
+  "cases": null,
+  "n_gallery": 12,
+  "n_surface": 4
+ }
+}

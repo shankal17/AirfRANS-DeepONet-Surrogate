@@ -245,8 +245,8 @@ def animate(path):
                                      width=1.6 / 72, headwidth=3, headlength=4, headaxislength=3.5, minlength=0, zorder=2)
     ax_foil.annotate("", xy=(-0.12, 0.0), xytext=(-0.42, 0.0), arrowprops=dict(arrowstyle="-|>", color=viz.INK_MUTED, lw=1.2))
     freestream = ax_foil.text(-0.27, 0.03, "", ha="center", va="bottom", color=viz.INK_MUTED)
-    ax_foil.legend(handles=[Line2D([], [], color=viz.BLUE, lw=1.6, label="suction ($C_p < 0$)"),
-                            Line2D([], [], color=viz.ORANGE, lw=1.6, label="positive pressure ($C_p > 0$)")], loc="upper right")
+    ax_foil.legend(handles=[Line2D([], [], color=viz.BLUE, lw=1.6, label="low pressure ($C_p < 0$)"),
+                            Line2D([], [], color=viz.ORANGE, lw=1.6, label="high pressure ($C_p > 0$)")], loc="upper right")
     row = pd.read_csv(osp.join(full.paths.data, "cases.csv")).set_index("name").loc[CASE]
     fig.text(0.07, 0.96, f"DeepONet surrogate, {viz.naca_label(row)}", fontsize=11, va="center")
     readout = fig.text(0.07, 0.925, "", fontsize=9, va="center", color=viz.INK_MUTED, family="monospace")
@@ -263,7 +263,7 @@ def animate(path):
         ax.set(xlim=(0, 1), ylim=(lo - 0.05 * (hi - lo), hi + 0.05 * (hi - lo)), ylabel=ylabel)
     ax_cp.tick_params(labelbottom=False)
     ax_cf.set_xlabel("x/c")
-    ax_cp.plot([], [], color=viz.INK_MUTED, lw=0.8, ls="--", label=f"Re {re[0] / 1e6:.1f}M, AoA {aoa[0]:.0f}° (start)")
+    ax_cp.plot([], [], color=viz.INK_MUTED, lw=0.8, ls="--", label=f"Re {re[0] / 1e6:.1f}*10^6, AoA {aoa[0]:.0f}° (start)")
     ax_cp.legend(loc="upper right")
 
     # Cl and Cd traces: the whole run faint, the part played so far solid.
@@ -301,7 +301,7 @@ def animate(path):
         for values, played, marker in traces:
             played.set_data(frames[:f + 1], values[:f + 1])
             marker.set_data([f], [values[f]])
-        readout.set_text(f"Re {re[f] / 1e6:4.2f}M   AoA {aoa[f]:+5.1f}°   "
+        readout.set_text(f"Re {re[f] / 1e6:4.2f}*10^6   AoA {aoa[f]:+5.1f}°   "
                          f"Cl {cl[f]:+.3f}   Cd {cd[f]:.4f}   L/D {cl[f] / cd[f]:+6.1f}")
         return []
 

@@ -121,7 +121,7 @@ def run(cfg: Config):
         for split, color in [("train", "C0"), ("test", "C3")]:
             in_split = cases[f"{task}_{split}"]
             ax.scatter(cases.re[in_split] / 1e6, cases.aoa_deg[in_split], s=4, c=color, label=split)
-        ax.set(xlabel="Re (millions)", ylabel="AoA (deg)", title=f"'{task}' extrapolation split")
+        ax.set(xlabel="Re (10^6)", ylabel="AoA (deg)", title=f"'{task}' extrapolation split")
         ax.legend()
     fig.tight_layout()
     fig.savefig(osp.join(figs_dir, "split_coverage.png"), dpi=150)

@@ -16,7 +16,7 @@ plt = viz.plt
 LABEL = {"cl": "$C_l$", "cd": "$C_d$"}
 # Chordwise regions for Cp error: the leading edge (suction peak) is the hardest part.
 REGIONS = {"le": (-np.inf, 0.02), "mid": (0.02, 0.95), "te": (0.95, np.inf)}
-TRAIN_RANGE = {"reynolds": ("re", 3e6, 5e6, 1e-6, "Re (millions)"),
+TRAIN_RANGE = {"reynolds": ("re", 3e6, 5e6, 1e-6, "Re (10^6)"),
                "aoa": ("aoa_deg", -2.5, 12.5, 1.0, "angle of attack (deg)")}
 
 def spearman(a, b):

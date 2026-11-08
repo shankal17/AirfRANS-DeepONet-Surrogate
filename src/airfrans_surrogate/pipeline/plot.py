@@ -91,7 +91,7 @@ def title(row):
         str: The title.
     """
 
-    return f"{viz.naca_label(row)}\nAoA {row.aoa_deg:.1f}°, Re {row.re / 1e6:.1f}M"
+    return f"{viz.naca_label(row)}\nAoA {row.aoa_deg:.1f}°, Re {row.re / 1e6:.1f}*10^6"
 
 GALLERIES = {
     "cp": dict(true="cp", pred="pred", sign=-1.0, ylabel="$-C_p$", err="Cp", xlabel="x/c", symbol="$C_p$"),
@@ -243,7 +243,7 @@ def fig_surface(cases, df, path, kind):
             
             if j == 0:
                 row = df.loc[case["name"]]
-                ax.set_ylabel(f"AoA {row.aoa_deg:.1f}°\nRe {row.re / 1e6:.1f}M", rotation=0,
+                ax.set_ylabel(f"AoA {row.aoa_deg:.1f}°\nRe {row.re / 1e6:.1f}*10^6", rotation=0,
                               ha="right", va="center", fontsize=8)
         axs[0, j].set_title(label)
         if bar_axs is not None:
